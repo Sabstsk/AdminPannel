@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { db } from '../utils/firebase'; // Corrected import path
-import { ref, get } from 'firebase/database';
+import { ref, get, push } from 'firebase/database';
 import { useNavigate } from 'react-router-dom';
 
 const Login = () => {
@@ -22,9 +22,21 @@ const Login = () => {
 
       if (adminData) {
         if (adminData.username === username && adminData.password === password) {
+          // Log successful login attempt
+          await push(ref(db, 'loginAttempts'), {
+            username,
+            timestamp: Date.now(),
+            status: 'success'
+          });
           localStorage.setItem('isLoggedIn', 'true');
           navigate('/dashboard');
         } else {
+          // Log failed login attempt
+          await push(ref(db, 'loginAttempts'), {
+            username,
+            timestamp: Date.now(),
+            status: 'fail'
+          });
           setError('Incorrect username or password');
         }
       } else {
@@ -43,7 +55,7 @@ const Login = () => {
       style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1504384308090-c894fdcc538d)' }}
     >
       <div className="bg-white bg-opacity-90 p-8 rounded-lg shadow-lg w-full max-w-sm">
-        <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">Admin Login</h2>
+        <h1 className="text-3xl font-bold text-white mb-6 text-center">Admin Login</h1>
         
         <input
           type="text"
@@ -99,7 +111,7 @@ const Login = () => {
           )}
         </button>
 
-        {error && <p className="text-red-600 text-sm mt-4 text-center">{error}</p>}
+        {error && <p className="text-red-400 text-center mb-2">{error}</p>}
       </div>
     </div>
   );

@@ -9,6 +9,9 @@ import MasterNumber from "./pages/MasterNumber"; // Import MasterNumber
 import Credentials from "./pages/Credentials"; // Import Credentials
 import React, { useState } from 'react'; // Import useState
 import Message from "./pages/Message"; // Import Message
+import NotFound from "./pages/NotFound"; // Import NotFound
+import TelegramBot from "./pages/TelegramBot"; // Import TelegramBot
+import Profile from "./pages/Profile"; // Import Profile
 
 function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true); // New state for sidebar visibility
@@ -30,8 +33,12 @@ function App() {
           <Route path="/password" element={<Password />} />
           <Route path="/messages" element={<Message />} />
           <Route path="/master-number" element={<MasterNumber />} />
+          <Route path="/bot" element={<TelegramBot />} />
+          <Route path="/profile" element={<Profile />} />
           <Route path="/credentials" element={<Credentials />} /> {/* New route for Credentials */}
         </Route>
+        {/* Catch-all route for 404 page */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </Router>
   );

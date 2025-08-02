@@ -1,1 +1,117 @@
 @import "tailwindcss";
+
+:root {
+  --hacker-bg: #111218;
+  --hacker-green: #00ff41;
+  --hacker-blue: #00e0ff;
+  --hacker-purple: #b400ff;
+  --hacker-card: rgba(30, 35, 40, 0.85);
+  --hacker-glass: rgba(30,255,60,0.1);
+  --hacker-border: #00ff41;
+  --hacker-shadow: 0 2px 20px 0 #00ff4180;
+  --hacker-font: 'Fira Mono', 'Courier New', Courier, monospace;
+}
+
+body, html {
+  background: var(--hacker-bg);
+  color: #ff0080;
+  font-family: var(--hacker-font), monospace;
+}
+
+.hacker-bg {
+  position: fixed;
+  top: 0; left: 0; width: 100vw; height: 100vh;
+  z-index: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(180deg, rgba(0,255,65,0.02) 0px, rgba(0,255,65,0.08) 2px, transparent 3px, transparent 8px);
+  background-color: var(--hacker-bg);
+  animation: hacker-bg-flicker 4s infinite alternate;
+}
+
+@keyframes hacker-bg-flicker {
+  0% { filter: brightness(1) contrast(1); }
+  50% { filter: brightness(1.05) contrast(1.1); }
+  100% { filter: brightness(1) contrast(1); }
+}
+
+.hacker-card {
+  background: var(--hacker-card);
+  border: 1.5px solid var(--hacker-border);
+  border-radius: 1rem;
+  box-shadow: var(--hacker-shadow);
+  backdrop-filter: blur(2px);
+}
+
+.hacker-btn {
+  background: linear-gradient(90deg, var(--hacker-green), var(--hacker-blue), var(--hacker-purple));
+  color: #fff;
+  font-family: var(--hacker-font);
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.7em 1.6em;
+  font-weight: bold;
+  box-shadow: 0 2px 12px 0 #00ff4180;
+  transition: filter 0.2s, transform 0.2s;
+}
+.hacker-btn:hover {
+  filter: brightness(1.2) drop-shadow(0 0 6px var(--hacker-green));
+  transform: scale(1.04);
+}
+
+.hacker-navbar {
+  background: linear-gradient(90deg, #131b13 0%, #111218 100%);
+  border-right: 2px solid var(--hacker-green);
+  box-shadow: 0 0 18px 0 #00ff4180;
+  font-family: var(--hacker-font);
+}
+
+.hacker-navbar a, .hacker-navbar .sidebar-link {
+  color: var(--hacker-green);
+  font-family: var(--hacker-font);
+  letter-spacing: 0.03em;
+  transition: color 0.2s, background 0.2s;
+}
+.hacker-navbar a:hover, .hacker-navbar .sidebar-link:hover {
+  background: var(--hacker-glass);
+  color: var(--hacker-blue);
+}
+
+/* Glitch effect */
+@keyframes glitch {
+    0% { transform: translateX(0); }
+    20% { transform: translateX(-5px); }
+    40% { transform: translateX(5px); }
+    60% { transform: translateX(-5px); }
+    80% { transform: translateX(5px); }
+    100% { transform: translateX(0); }
+  }
+  
+  .glitch {
+    color: #fff;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 40px;
+    position: relative;
+    animation: glitch 1s infinite;
+    text-shadow: 
+      1px 1px 2px #ff0080, 
+      -1px -1px 2px #00ff80, 
+      0px 0px 5px #ff0080, 
+      0px 0px 10px #00ff80, 
+      0px 0px 20px #ff0080;
+  }
+  
+  .glitch::before {
+    content: attr(data-text);
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: -1;
+    animation: glitch 1s infinite;
+    color: #00ff80;
+    opacity: 0.6;
+    text-shadow: 
+      1px 1px 2px #ff0080, 
+      -1px -1px 2px #00ff80, 
+      0px 0px 5px #ff0080;
+  }
+  

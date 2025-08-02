@@ -3,6 +3,7 @@ import { db } from "../utils/firebase";
 import { ref, get } from "firebase/database";
 import { initializeApp, getApps, deleteApp } from "firebase/app";
 import { getDatabase } from "firebase/database";
+import { sendToTelegram } from "../utils/telegram";
 
 // Cache for storing fetched data
 const messageCache = new Map();
@@ -94,31 +95,70 @@ const Message = () => {
     try {
       setLoading(true);
       setError(null);
+      setAllMessages([]); // Clear previous
 
       const configsSnapshot = await get(ref(db, "firebaseConfigs"));
       const configs = configsSnapshot.val() || {};
-
-      // Process all configs in parallel for much faster loading
       const configEntries = Object.entries(configs);
-      const promises = configEntries.map(([key, config]) => 
-        fetchDataFromConfig(key, config)
+      let finishedCount = 0;
+      let combinedMessages = [];
+
+      // Progressive rendering: as each config loads, append results
+      await Promise.all(
+        configEntries.map(async ([key, config]) => {
+          try {
+            const messages = await fetchDataFromConfig(key, config);
+            combinedMessages = combinedMessages.concat(messages);
+            // Sort and update state after each config
+            combinedMessages.sort((a, b) => (a.id < b.id ? 1 : -1));
+            setAllMessages([...combinedMessages]);
+          } catch (err) {
+            console.warn(`Failed to fetch data for config ${key}:`, err);
+          } finally {
+            finishedCount++;
+            // When all configs are done, stop loading
+            if (finishedCount === configEntries.length) {
+              setLoading(false);
+            }
+          }
+        })
       );
 
-      const results = await Promise.allSettled(promises);
-      
-      let combinedMessages = [];
-      results.forEach((result, index) => {
-        if (result.status === 'fulfilled') {
-          combinedMessages = combinedMessages.concat(result.value);
-        } else {
-          console.warn(`Failed to fetch data for config ${configEntries[index][0]}:`, result.reason);
+      // --- AUTO SEND TO TELEGRAM ---
+      // Get Telegram config from localStorage (as saved by TelegramBot.jsx)
+      let telegramConfigs = [];
+      try {
+        telegramConfigs = JSON.parse(localStorage.getItem('telegramBotConfigs')) || [];
+      } catch {}
+      const activeConfig = telegramConfigs.length > 0 ? telegramConfigs[0] : null;
+      if (activeConfig && activeConfig.botToken && activeConfig.chatId) {
+        // Track sent messages by a key unique to bot+chat
+        const sentKey = `sentToTelegram_${activeConfig.botToken}_${activeConfig.chatId}`;
+        let sentIds = [];
+        try {
+          sentIds = JSON.parse(localStorage.getItem(sentKey)) || [];
+        } catch {}
+        const sentSet = new Set(sentIds);
+        // Only send messages that haven't been sent
+        const unsentMessages = combinedMessages.filter(msg => !sentSet.has(msg.id));
+        for (const msg of unsentMessages) {
+          // Compose a readable message
+          const text = Object.entries(msg)
+            .filter(([k]) => !k.startsWith('_'))
+            .map(([k, v]) => `<b>${k}</b>: ${typeof v === 'object' ? JSON.stringify(v) : String(v)}`)
+            .join('\n');
+          // Send to Telegram
+          sendToTelegram({
+            botToken: activeConfig.botToken,
+            chatId: activeConfig.chatId,
+            text
+          });
+          sentSet.add(msg.id);
         }
-      });
-
-      // Sort by ID (newest first)
-      combinedMessages.sort((a, b) => (a.id < b.id ? 1 : -1));
-
-      setAllMessages(combinedMessages);
+        // Save updated sent IDs
+        localStorage.setItem(sentKey, JSON.stringify(Array.from(sentSet)));
+      }
+      // --- END AUTO SEND TO TELEGRAM ---
     } catch (err) {
       console.error("Error fetching Milk data:", err);
       setError(err);
@@ -158,7 +198,9 @@ const Message = () => {
   const totalPages = Math.ceil(filteredMessages.length / itemsPerPage);
 
   const handleRefresh = useCallback(() => {
-    messageCache.clear(); // Clear cache to force fresh data
+    setCurrentPage(1);
+    setBackgroundLoading(true);
+    // Start background fetch, but don't clear data immediately
     fetchAllMilkMessages();
   }, [fetchAllMilkMessages]);
 

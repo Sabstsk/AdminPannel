@@ -10,6 +10,7 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 const Credentials = () => {
   const [allCowData, setAllCowData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [backgroundLoading, setBackgroundLoading] = useState(false);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(20);
@@ -91,43 +92,58 @@ const Credentials = () => {
   const fetchAllCowData = useCallback(async () => {
     try {
       setLoading(true);
+      setBackgroundLoading(false);
       setError(null);
+      setAllCowData([]);
 
       const configsSnapshot = await get(ref(db, "firebaseConfigs"));
       const configs = configsSnapshot.val() || {};
-
-      // Process all configs in parallel for much faster loading
       const configEntries = Object.entries(configs);
-      const promises = configEntries.map(([key, config]) => 
-        fetchDataFromConfig(key, config)
-      );
-
-      const results = await Promise.allSettled(promises);
-      
+      let finishedCount = 0;
       let combinedCowData = [];
-      results.forEach((result, index) => {
-        if (result.status === 'fulfilled') {
-          combinedCowData = combinedCowData.concat(result.value);
-        } else {
-          console.warn(`Failed to fetch data for config ${configEntries[index][0]}:`, result.reason);
-        }
-      });
+      let firstPageShown = false;
 
-      // Sort by timestamp (newest first)
-      combinedCowData.sort((a, b) => {
-        const tsA = Number(a.timestamp) || 0;
-        const tsB = Number(b.timestamp) || 0;
-        return tsB - tsA;
-      });
-
-      setAllCowData(combinedCowData);
+      // Progressive rendering: as each config loads, append results
+      await Promise.all(
+        configEntries.map(async ([key, config]) => {
+          try {
+            const entries = await fetchDataFromConfig(key, config);
+            combinedCowData = combinedCowData.concat(entries);
+            // Sort and update state after each config
+            combinedCowData.sort((a, b) => {
+              const tsA = Number(a.timestamp) || 0;
+              const tsB = Number(b.timestamp) || 0;
+              return tsB - tsA;
+            });
+            // Show first page as soon as we have enough data
+            if (!firstPageShown && combinedCowData.length >= itemsPerPage) {
+              setAllCowData([...combinedCowData]);
+              setLoading(false);
+              setBackgroundLoading(true);
+              firstPageShown = true;
+            } else if (!firstPageShown) {
+              setAllCowData([...combinedCowData]);
+            } else {
+              setAllCowData([...combinedCowData]); // Keep updating as more data arrives
+            }
+          } catch (err) {
+            console.warn(`Failed to fetch data for config ${key}:`, err);
+          } finally {
+            finishedCount++;
+            if (finishedCount === configEntries.length) {
+              setLoading(false);
+              setBackgroundLoading(false);
+            }
+          }
+        })
+      );
     } catch (err) {
       console.error("Error fetching all Cow data:", err);
       setError(err);
-    } finally {
       setLoading(false);
+      setBackgroundLoading(false);
     }
-  }, [fetchDataFromConfig]);
+  }, [fetchDataFromConfig, itemsPerPage]);
 
   useEffect(() => {
     fetchAllCowData();
@@ -162,10 +178,17 @@ const Credentials = () => {
     return filteredData.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredData, currentPage, itemsPerPage]);
 
+  // Serial number for each row (descending, latest at top)
+  const getSerialNumber = (index) => {
+    return filteredData.length - ((currentPage - 1) * itemsPerPage + index);
+  };
+
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
 
   const handleRefresh = useCallback(() => {
-    dataCache.clear(); // Clear cache to force fresh data
+    setCurrentPage(1);
+    setBackgroundLoading(true);
+    // Start background fetch, but don't clear data immediately
     fetchAllCowData();
   }, [fetchAllCowData]);
 
@@ -213,7 +236,10 @@ const Credentials = () => {
               className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
             <div className="text-sm text-gray-600">
-              Showing {filteredData.length} of {allCowData.length} entries
+              Showing {paginatedData.length} of {filteredData.length} entries (Total loaded: {allCowData.length})
+              {backgroundLoading && (
+                <span className="ml-2 text-blue-500 animate-pulse">Loading more in background...</span>
+              )}
             </div>
           </div>
         </div>
@@ -228,11 +254,15 @@ const Credentials = () => {
         ) : (
           <>
             <div className="space-y-4 mb-6">
-              {paginatedData.map((dataEntry) => (
+              {paginatedData.map((dataEntry, idx) => (
               <div
                 key={`${dataEntry._projectId}-${dataEntry.id}`}
                 className="border border-gray-300 rounded-lg p-4 bg-gray-50 shadow-sm"
               >
+                <div className="flex items-center mb-1">
+                  <span className="text-xs font-bold text-blue-400 mr-2">#{getSerialNumber(idx)}</span>
+                  <p className="text-sm font-medium">Entry ID: {dataEntry.id}</p>
+                </div>
                 <p className="text-xs text-gray-500 mb-2">
                   <strong>Project:</strong> {dataEntry._projectId}
                 </p>
