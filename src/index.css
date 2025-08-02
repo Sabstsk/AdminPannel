@@ -18,6 +18,20 @@ body, html {
   font-family: var(--hacker-font), monospace;
 }
 
+input::placeholder {
+  color: #7dd3fc !important;
+  opacity: 1;
+  font-family: var(--hacker-font), monospace;
+}
+
+input:-webkit-input-placeholder {
+  color: #7dd3fc !important;
+}
+
+input::-ms-input-placeholder {
+  color: #7dd3fc !important;
+}
+
 .hacker-bg {
   position: fixed;
   top: 0; left: 0; width: 100vw; height: 100vh;

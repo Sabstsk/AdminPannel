@@ -50,12 +50,11 @@ const Login = () => {
   };
 
   return (
-    <div
-      className="min-h-screen bg-cover bg-center flex items-center justify-center"
-      style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1504384308090-c894fdcc538d)' }}
-    >
-      <div className="bg-white bg-opacity-90 p-8 rounded-lg shadow-lg w-full max-w-sm">
-        <h1 className="text-3xl font-bold text-white mb-6 text-center">Admin Login</h1>
+    <div className="min-h-screen flex items-center justify-center relative" style={{backgroundImage: "url('https://images.unsplash.com/photo-1624099600644-14f20e1dc01c?q=80&w=1156&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D')", backgroundSize: 'cover', backgroundPosition: 'center'}}>
+      {/* Overlay for darkening the background */}
+      <div className="absolute inset-0 bg-opacity-70 z-0"></div>
+      <div className="hacker-card p-8 w-full max-w-sm shadow-2xl border-2 border-blue-500 z-10" style={{backdropFilter:'blur(3px)'}}>
+        <h1 className="glitch mb-6 text-center" data-text="Admin Login" style={{ fontFamily: 'Fira Mono, Courier, monospace', fontSize: '2.1rem', color: 'var(--hacker-accent)' }}>Admin Login</h1>
         
         <input
           type="text"
@@ -111,7 +110,7 @@ const Login = () => {
           )}
         </button>
 
-        {error && <p className="text-red-400 text-center mb-2">{error}</p>}
+        {error && <p className="text-red-500 text-center mb-2 font-semibold">{error}</p>}
       </div>
     </div>
   );
