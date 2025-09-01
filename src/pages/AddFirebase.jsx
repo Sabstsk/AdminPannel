@@ -6,7 +6,30 @@ import JSON5 from "json5";
 const AddFirebase = () => {
   const [jsonInput, setJsonInput] = useState("");
 
-  
+  // Convert Google Services JSON to Firebase Web SDK format
+  const convertGoogleServicesJson = (googleConfig) => {
+    try {
+      const projectInfo = googleConfig.project_info;
+      const client = googleConfig.client?.[0];
+      const apiKey = client?.api_key?.[0]?.current_key;
+
+      if (!projectInfo || !apiKey) {
+        throw new Error("Missing required fields in Google Services JSON");
+      }
+
+      return {
+        apiKey: apiKey,
+        authDomain: `${projectInfo.project_id}.firebaseapp.com`,
+        databaseURL: projectInfo.firebase_url,
+        projectId: projectInfo.project_id,
+        storageBucket: projectInfo.storage_bucket,
+        messagingSenderId: projectInfo.project_number,
+        appId: client.client_info?.mobilesdk_app_id || `1:${projectInfo.project_number}:web:${Date.now()}`
+      };
+    } catch (error) {
+      throw new Error(`Google Services JSON conversion failed: ${error.message}`);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -26,7 +49,14 @@ const AddFirebase = () => {
       }
   
       // Use JSON5 parse for JS-style object literals
-      const parsedData = JSON5.parse(dataToParse);
+      let parsedData = JSON5.parse(dataToParse);
+
+      // Check if it's Google Services JSON format and convert
+      if (parsedData.project_info && parsedData.client) {
+        console.log("Detected Google Services JSON format, converting...");
+        parsedData = convertGoogleServicesJson(parsedData);
+        console.log("Converted to Firebase Web SDK format:", parsedData);
+      }
   
       if (!parsedData || typeof parsedData !== "object" || !parsedData.databaseURL) {
         alert("Invalid config: 'databaseURL' is required in the Firebase config object.");
@@ -94,7 +124,30 @@ const AddFirebase = () => {
               onChange={(e) => setJsonInput(e.target.value)}
               rows="10"
               className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-              placeholder={`Paste config as JSON or JavaScript variable declaration here.`}
+              placeholder={`Paste Firebase Web SDK config OR Google Services JSON here.
+
+Examples:
+1. Firebase Web SDK:
+{
+  apiKey: "...",
+  authDomain: "...",
+  databaseURL: "...",
+  projectId: "...",
+  storageBucket: "...",
+  messagingSenderId: "...",
+  appId: "..."
+}
+
+2. Google Services JSON:
+{
+  "project_info": {
+    "project_number": "...",
+    "firebase_url": "...",
+    "project_id": "...",
+    "storage_bucket": "..."
+  },
+  "client": [...]
+}`}
               required
             ></textarea>
           </div>

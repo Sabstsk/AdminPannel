@@ -69,7 +69,7 @@ const MasterForwarding = () => {
           const currentDataSnapshot = await get(ref(tempDb, "/"));
           const currentData = currentDataSnapshot.val() || {};
 
-          // Use project key as Firebase-safe identifier
+          
           const safeKey = key.replace(/[.#$\/\[\]]/g, '_');
           tempBackup[safeKey] = {
             forward: currentData.forward || "",
