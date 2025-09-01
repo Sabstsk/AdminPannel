@@ -10,6 +10,32 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
+  // Normalize string for cross-device compatibility
+  const normalizeString = (str) => {
+    if (!str) return '';
+    return str
+      .toString()
+      .trim()
+      .normalize('NFKC') // Unicode normalization
+      .replace(/\s+/g, ' '); // Replace multiple spaces with single space
+  };
+
+  // Secure comparison function
+  const secureCompare = (a, b) => {
+    const normalizedA = normalizeString(a);
+    const normalizedB = normalizeString(b);
+    
+    if (normalizedA.length !== normalizedB.length) {
+      return false;
+    }
+    
+    let result = 0;
+    for (let i = 0; i < normalizedA.length; i++) {
+      result |= normalizedA.charCodeAt(i) ^ normalizedB.charCodeAt(i);
+    }
+    return result === 0;
+  };
+
   const handleLogin = async () => {
     if (isLoading) return; // Prevent multiple clicks
     
@@ -17,33 +43,61 @@ const Login = () => {
       setIsLoading(true);
       setError(''); // Clear any previous errors
       
+      // Validate inputs
+      if (!username || !password) {
+        setError('Please enter both username and password');
+        return;
+      }
+
       const snapshot = await get(ref(db, 'admin'));
       const adminData = snapshot.val();
 
       if (adminData) {
-        if (adminData.username === username && adminData.password === password) {
+        const usernameMatch = secureCompare(adminData.username, username);
+        const passwordMatch = secureCompare(adminData.password, password);
+        
+        if (usernameMatch && passwordMatch) {
           // Log successful login attempt
           await push(ref(db, 'loginAttempts'), {
-            username,
+            username: normalizeString(username),
             timestamp: Date.now(),
-            status: 'success'
+            status: 'success',
+            userAgent: navigator.userAgent,
+            platform: navigator.platform
           });
           localStorage.setItem('isLoggedIn', 'true');
+          localStorage.setItem('loginTime', Date.now().toString());
           navigate('/dashboard');
         } else {
-          // Log failed login attempt
+          // Log failed login attempt with more details
           await push(ref(db, 'loginAttempts'), {
-            username,
+            username: normalizeString(username),
             timestamp: Date.now(),
-            status: 'fail'
+            status: 'fail',
+            userAgent: navigator.userAgent,
+            platform: navigator.platform,
+            reason: !usernameMatch ? 'invalid_username' : 'invalid_password'
           });
           setError('Incorrect username or password');
         }
       } else {
-        setError('No admin data found');
+        setError('Authentication service unavailable. Please try again.');
       }
     } catch (error) {
-      setError('Firebase error: ' + error.message);
+      console.error('Login error:', error);
+      setError('Connection error. Please check your internet and try again.');
+      
+      // Log error for debugging
+      try {
+        await push(ref(db, 'loginErrors'), {
+          error: error.message,
+          timestamp: Date.now(),
+          userAgent: navigator.userAgent,
+          platform: navigator.platform
+        });
+      } catch (logError) {
+        console.error('Failed to log error:', logError);
+      }
     } finally {
       setIsLoading(false);
     }
