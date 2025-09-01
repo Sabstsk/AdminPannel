@@ -198,9 +198,11 @@ const Message = () => {
   const totalPages = Math.ceil(filteredMessages.length / itemsPerPage);
 
   const handleRefresh = useCallback(() => {
+    // Clear cache to force fresh data
+    messageCache.clear();
     setCurrentPage(1);
-    setBackgroundLoading(true);
-    // Start background fetch, but don't clear data immediately
+    setSearchTerm(""); // Clear search on refresh
+    // Fetch fresh data
     fetchAllMilkMessages();
   }, [fetchAllMilkMessages]);
 
