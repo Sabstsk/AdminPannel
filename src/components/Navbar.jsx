@@ -1,12 +1,14 @@
 import React from 'react';
 import { Link, useNavigate, Outlet } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 const Sidebar = ({ isSidebarOpen, toggleSidebar }) => { // Accept props
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   const handleLogout = () => {
-    localStorage.removeItem("admin");
-    navigate("/");
+    logout(); // Use auth context logout
+    navigate("/login", { replace: true });
   };
 
   return (

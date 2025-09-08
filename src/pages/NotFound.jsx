@@ -1,11 +1,18 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 const NotFound = () => {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
   const handleGoHome = () => {
-    navigate('/dashboard');
+    // Redirect to appropriate page based on auth status
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    } else {
+      navigate('/login');
+    }
   };
 
   const handleGoBack = () => {
@@ -84,7 +91,7 @@ const NotFound = () => {
                   d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
                 />
               </svg>
-              Go to Dashboard
+              {isAuthenticated ? 'Go to Dashboard' : 'Go to Login'}
             </span>
             <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           </button>

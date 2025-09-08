@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { db } from '../utils/firebase'; // Corrected import path
+import React, { useState, useEffect } from 'react';
+import { db } from '../utils/firebase';
 import { ref, get, push } from 'firebase/database';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -9,6 +10,16 @@ const Login = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const { isAuthenticated, login } = useAuth();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      const from = location.state?.from?.pathname || '/dashboard';
+      navigate(from, { replace: true });
+    }
+  }, [isAuthenticated, navigate, location]);
 
   // Normalize string for cross-device compatibility
   const normalizeString = (str) => {
@@ -65,9 +76,13 @@ const Login = () => {
             userAgent: navigator.userAgent,
             platform: navigator.platform
           });
-          localStorage.setItem('isLoggedIn', 'true');
-          localStorage.setItem('loginTime', Date.now().toString());
-          navigate('/dashboard');
+          
+          // Use the auth context login method
+          login();
+          
+          // Navigate to the intended page or dashboard
+          const from = location.state?.from?.pathname || '/dashboard';
+          navigate(from, { replace: true });
         } else {
           // Log failed login attempt with more details
           await push(ref(db, 'loginAttempts'), {
