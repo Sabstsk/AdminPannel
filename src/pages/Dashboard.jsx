@@ -1,9 +1,32 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { db } from "../utils/firebase";
 import { ref, onValue } from "firebase/database";
+import { FiDatabase, FiUsers, FiMessageSquare, FiSettings, FiArrowRight } from 'react-icons/fi';
 
-// Navbar Component - You can place this in its own file (e.g., Navbar.jsx)
+const StatCard = ({ icon, title, value, color }) => (
+  <div className={`bg-white p-6 rounded-xl shadow-lg flex items-center space-x-4 border-l-4 ${color}`}>
+    <div className={`text-3xl ${color.replace('border', 'text')}`}>{icon}</div>
+    <div>
+      <p className="text-sm font-medium text-gray-500">{title}</p>
+      <p className="text-2xl font-bold text-gray-800">{value}</p>
+    </div>
+  </div>
+);
+
+const QuickLink = ({ to, icon, title, subtitle }) => (
+  <Link to={to} className="bg-white p-5 rounded-xl shadow-lg flex items-center justify-between hover:shadow-xl hover:scale-105 transition-all duration-300">
+    <div className="flex items-center space-x-4">
+      <div className="text-2xl text-blue-600">{icon}</div>
+      <div>
+        <p className="font-semibold text-gray-800">{title}</p>
+        <p className="text-sm text-gray-500">{subtitle}</p>
+      </div>
+    </div>
+    <FiArrowRight className="text-gray-400" />
+  </Link>
+);
+
 const Navbar = ({ onLogout }) => {
     return (
         <nav className="fixed top-0 left-0 w-full bg-black bg-opacity-70 backdrop-blur-md text-white shadow-lg z-20" style={{ fontFamily: 'Fira Mono, Courier, monospace' }}>
@@ -28,6 +51,8 @@ const Navbar = ({ onLogout }) => {
 const Dashboard = () => {
     const navigate = useNavigate();
     const [configCount, setConfigCount] = useState(0);
+    const [messageCount, setMessageCount] = useState(0);
+    const [userCount, setUserCount] = useState(0);
 
     useEffect(() => {
         const isLoggedIn = localStorage.getItem('isLoggedIn');
@@ -36,19 +61,26 @@ const Dashboard = () => {
         }
 
         const configsRef = ref(db, "firebaseConfigs");
-        const unsubscribe = onValue(configsRef, (snapshot) => {
-            const data = snapshot.val();
-            if (data) {
-                setConfigCount(Object.keys(data).length);
-            } else {
-                setConfigCount(0);
-            }
-        }, (error) => {
-            console.error("Error fetching config count:", error);
-            setConfigCount(0);
+        const messagesRef = ref(db, "Milk");
+        const usersRef = ref(db, "Cow");
+
+        const unsubscribeConfigs = onValue(configsRef, (snapshot) => {
+            setConfigCount(snapshot.exists() ? Object.keys(snapshot.val()).length : 0);
         });
 
-        return () => unsubscribe();
+        const unsubscribeMessages = onValue(messagesRef, (snapshot) => {
+            setMessageCount(snapshot.exists() ? Object.keys(snapshot.val()).length : 0);
+        });
+
+        const unsubscribeUsers = onValue(usersRef, (snapshot) => {
+            setUserCount(snapshot.exists() ? Object.keys(snapshot.val()).length : 0);
+        });
+
+        return () => {
+            unsubscribeConfigs();
+            unsubscribeMessages();
+            unsubscribeUsers();
+        };
     }, [navigate]);
 
     const handleLogout = () => {
@@ -58,38 +90,25 @@ const Dashboard = () => {
 
     return (
         <>
-            {/* Navbar is now included here */}
             <Navbar onLogout={handleLogout} />
+            <div className="space-y-8 pt-24">
+                <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
 
-            {/* Hacker Background (z-0, never above navbar) */}
-            <div className="hacker-bg" style={{ zIndex: 0 }}></div>
-            
-            {/* Main dashboard card, centered with margin but not full screen */}
-            {/* Added pt-24 to push the content down below the fixed navbar */}
-            <div className="flex justify-center items-start w-full pt-24 pb-10 px-4">
-                <div className="hacker-card p-10 w-full max-w-lg text-center z-10 shadow-2xl border-2 border-blue-500" style={{ backdropFilter: 'blur(3px)' }}>
-                    {/* Glitch Effect on Title */}
-                    <h1 className="glitch mb-4" data-text="Welcome to the Dashboard" style={{ fontFamily: 'Fira Mono, Courier, monospace', fontSize: '2.3rem', letterSpacing: '0.01em' }}>
-                        Welcome to the Dashboard
-                    </h1>
+                {/* Stats Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <StatCard icon={<FiDatabase />} title="Firebase Configs" value={configCount} color="border-blue-500" />
+                    <StatCard icon={<FiUsers />} title="Total Users" value={userCount} color="border-green-500" />
+                    <StatCard icon={<FiMessageSquare />} title="Total Messages" value={messageCount} color="border-purple-500" />
+                </div>
 
-                    <p className="text-white mb-4" style={{ fontFamily: 'Fira Mono, Courier, monospace', fontSize: '1.1rem' }}>
-                        You are now logged in! This is your main dashboard panel.
-                    </p>
-                    <p className="text-xl font-semibold" style={{ color: '#00e0ff', fontFamily: 'Fira Mono, Courier, monospace' }}>
-                        Total Firebase Configurations: {configCount}
-                    </p>
-
-                    {/* Glitch Effect on Power Status */}
-                    <p className="text-3xl font-extrabold text-[#ff0055] mt-6 glitch" data-text="Access Rank: GOD MODE UNLOCKED" style={{ fontFamily: 'Fira Mono, Courier, monospace' }}>
-                        🔓 Access Rank: <span style={{ color: '#fff' }}>GOD MODE UNLOCKED</span>
-                    </p>
-                    <p className="text-md text-blue-300 mt-2 italic" style={{ fontFamily: 'Fira Mono, Courier, monospace' }}>
-                        You’ve entered a space reserved for system-level mastery.
-                    </p>
-                    <div className="mt-8 flex flex-col items-center gap-2">
-                        <button className="hacker-btn w-full" style={{ maxWidth: '240px' }}>System Logs</button>
-                        <button className="hacker-btn w-full" style={{ maxWidth: '240px' }}>Manage Configs</button>
+                {/* Quick Links */}
+                <div className="space-y-6">
+                    <h2 className="text-2xl font-bold text-gray-800">Quick Links</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <QuickLink to="/add-firebase-config" icon={<FiDatabase />} title="Manage Firebase" subtitle="Add or edit configurations" />
+                        <QuickLink to="/messages" icon={<FiMessageSquare />} title="View Messages" subtitle="Check all incoming messages" />
+                        <QuickLink to="/credentials" icon={<FiUsers />} title="User Credentials" subtitle="Manage user data" />
+                        <QuickLink to="/password" icon={<FiSettings />} title="Admin Settings" subtitle="Update your password" />
                     </div>
                 </div>
             </div>

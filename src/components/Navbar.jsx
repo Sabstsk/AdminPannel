@@ -1,65 +1,85 @@
 import React from 'react';
-import { Link, useNavigate, Outlet } from 'react-router-dom';
+import { NavLink, useNavigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import {
+  FiHome, FiPlusSquare, FiFileText, FiUser, FiPhone, 
+  FiMessageSquare, FiKey, FiLock, FiSend, FiLogOut, FiMenu, FiX
+} from 'react-icons/fi';
 
-const Sidebar = ({ isSidebarOpen, toggleSidebar }) => { // Accept props
+const Sidebar = ({ isSidebarOpen, toggleSidebar }) => {
   const navigate = useNavigate();
   const { logout } = useAuth();
 
   const handleLogout = () => {
-    logout(); // Use auth context logout
+    logout();
     navigate("/login", { replace: true });
   };
 
+  const navLinks = [
+    { to: "/dashboard", icon: <FiHome />, text: "Dashboard" },
+    { to: "/add-firebase-config", icon: <FiPlusSquare />, text: "Add Firebase" },
+    { to: "/entries", icon: <FiFileText />, text: "Entries" },
+    { to: "/profile", icon: <FiUser />, text: "Profile" },
+    { to: "/master-number", icon: <FiPhone />, text: "Master Number" },
+    { to: "/messages", icon: <FiMessageSquare />, text: "Messages" },
+    { to: "/credentials", icon: <FiKey />, text: "Credentials" },
+    { to: "/password", icon: <FiLock />, text: "Password" },
+    { to: "/bot", icon: <FiSend />, text: "Telegram Bot" },
+  ];
+
   return (
-    <div className="flex h-screen">
-      {/* Three-line button */}
+    <div className="flex h-screen bg-gray-100 font-sans">
+      {/* Mobile Menu Button */}
       <button
         onClick={toggleSidebar}
-        className="fixed top-4 left-4 z-50 p-2 text-blue-700 bg-white rounded-md shadow-md lg:hidden"
+        className="fixed top-4 left-4 z-50 p-2 bg-white text-gray-800 rounded-full shadow-lg lg:hidden"
       >
-        <div className="w-6 h-0.5 bg-blue-700 mb-1"></div>
-        <div className="w-6 h-0.5 bg-blue-700 mb-1"></div>
-        <div className="w-6 h-0.5 bg-blue-700"></div>
+        {isSidebarOpen ? <FiX size={20} /> : <FiMenu size={20} />}
       </button>
 
+      {/* Sidebar */}
       <div
-        className={`hacker-navbar flex flex-col justify-between fixed top-0 left-0 shadow-lg h-screen transition-all duration-300 ${isSidebarOpen ? 'w-64' : 'w-0 -translate-x-full'}`}
-        style={{ minWidth: isSidebarOpen ? '16rem' : '0' }}
+        className={`bg-white text-gray-800 flex flex-col justify-between fixed top-0 left-0 h-screen shadow-xl transition-all duration-300 ease-in-out z-40 ${isSidebarOpen ? 'w-64' : 'w-0 -translate-x-full'}`}
       >
-        <div className={`${isSidebarOpen ? 'block' : 'hidden'}`}>
-          <div className="px-6 py-4 border-b border-green-500 flex flex-col items-center">
-            <pre className="text-green-400 text-xs leading-4 mb-2 select-none" style={{fontFamily:'Fira Mono, Courier, monospace'}}>{`ȺđmɨnsŧɍȺŧøɍ `}</pre>
-            <Link to="/dashboard" className="text-green-400 text-lg font-bold tracking-widest hacker-navbar hover:text-blue-400" style={{fontFamily:'Fira Mono, Courier, monospace'}}>Admin Panel</Link>
+        <div className={`transition-opacity duration-200 ${isSidebarOpen ? 'opacity-100' : 'opacity-0'}`}>
+          <div className="px-6 py-5 border-b border-gray-200">
+            <NavLink to="/dashboard" className="text-2xl font-bold text-blue-600 hover:text-blue-800 transition-colors">
+              Admin Panel
+            </NavLink>
           </div>
 
-          <nav className="flex flex-col mt-4 space-y-2 px-4"> 
-            <Link to="/dashboard" className="sidebar-link px-4 py-2 rounded">Dashboard</Link>
-            <Link to="/add-firebase-config" className="sidebar-link px-4 py-2 rounded">Add Firebase Config</Link>
-            <Link to="/entries" className="sidebar-link px-4 py-2 rounded">Entries</Link>
-            <Link to="/profile" className="sidebar-link px-4 py-2 rounded">Profile</Link>
-            <Link to="/master-number" className="sidebar-link px-4 py-2 rounded">Master Number</Link>
-            <Link to="/messages" className="sidebar-link px-4 py-2 rounded">Messages</Link>
-            <Link to="/credentials" className="sidebar-link px-4 py-2 rounded">Credentials</Link>
-            <Link to="/password" className="sidebar-link px-4 py-2 rounded">Password</Link>
-            <Link to="/bot" className="sidebar-link px-4 py-2 rounded">Telegram Bot</Link>
-
-            <div className="mt-6 mb-2 text-sm uppercase tracking-wide text-gray-300">Menu</div>
+          <nav className="flex-grow mt-4 px-4 space-y-1">
+            {navLinks.map(link => (
+              <NavLink
+                key={link.to}
+                to={link.to}
+                className={({ isActive }) => 
+                  `flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${isActive ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900'}`
+                }
+              >
+                <span className="mr-3 text-lg">{link.icon}</span>
+                {link.text}
+              </NavLink>
+            ))}
           </nav>
         </div>
 
-        <div className={`${isSidebarOpen ? 'block' : 'hidden'} px-4 py-4 border-t border-green-500`}>
+        <div className={`px-4 py-4 border-t border-gray-200 transition-opacity duration-200 ${isSidebarOpen ? 'opacity-100' : 'opacity-0'}`}>
           <button
             onClick={handleLogout}
-            className="w-full hacker-btn bg-gradient-to-r from-green-600 to-blue-600 text-white py-2 px-4 rounded transition"
+            className="w-full flex items-center justify-center py-2.5 px-4 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600 transition-colors shadow-md"
           >
+            <FiLogOut className="mr-2" />
             Log out
           </button>
         </div>
       </div>
-      {/* Main content area, adjusts margin based on sidebar visibility */}
-      <div className={`flex-1 transition-all duration-300 ${isSidebarOpen ? 'ml-64' : 'ml-0'} bg-[#0e1014]`} style={{minHeight:'100vh'}}>
-        <Outlet /> 
+
+      {/* Main Content */}
+      <div className={`flex-1 transition-all duration-300 ease-in-out lg:ml-64`}>
+        <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen">
+          <Outlet />
+        </div>
       </div>
     </div>
   );

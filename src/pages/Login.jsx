@@ -1,188 +1,373 @@
 import React, { useState, useEffect } from 'react';
+
 import { db } from '../utils/firebase';
+
 import { ref, get, push } from 'firebase/database';
+
 import { useNavigate, useLocation } from 'react-router-dom';
+
 import { useAuth } from '../contexts/AuthContext';
 
+
+
 const Login = () => {
+
   const [username, setUsername] = useState('');
+
   const [password, setPassword] = useState('');
+
   const [error, setError] = useState('');
+
   const [isLoading, setIsLoading] = useState(false);
+
   const navigate = useNavigate();
+
   const location = useLocation();
+
   const { isAuthenticated, login } = useAuth();
 
+
+
   // Redirect if already authenticated
+
   useEffect(() => {
+
     if (isAuthenticated) {
+
       const from = location.state?.from?.pathname || '/dashboard';
+
       navigate(from, { replace: true });
+
     }
+
   }, [isAuthenticated, navigate, location]);
 
+
+
   // Normalize string for cross-device compatibility
+
   const normalizeString = (str) => {
+
     if (!str) return '';
+
     return str
+
       .toString()
+
       .trim()
+
       .normalize('NFKC') // Unicode normalization
+
       .replace(/\s+/g, ' '); // Replace multiple spaces with single space
+
   };
+
+
 
   // Secure comparison function
+
   const secureCompare = (a, b) => {
+
     const normalizedA = normalizeString(a);
+
     const normalizedB = normalizeString(b);
-    
+
+
+
     if (normalizedA.length !== normalizedB.length) {
+
       return false;
+
     }
-    
+
+
+
     let result = 0;
+
     for (let i = 0; i < normalizedA.length; i++) {
+
       result |= normalizedA.charCodeAt(i) ^ normalizedB.charCodeAt(i);
+
     }
+
     return result === 0;
+
   };
+
+
 
   const handleLogin = async () => {
+
     if (isLoading) return; // Prevent multiple clicks
-    
+
+
+
     try {
+
       setIsLoading(true);
+
       setError(''); // Clear any previous errors
-      
+
+
+
       // Validate inputs
+
       if (!username || !password) {
+
         setError('Please enter both username and password');
+
         return;
+
       }
+
+
 
       const snapshot = await get(ref(db, 'admin'));
+
       const adminData = snapshot.val();
 
+
+
       if (adminData) {
+
         const usernameMatch = secureCompare(adminData.username, username);
+
         const passwordMatch = secureCompare(adminData.password, password);
-        
+
+
+
         if (usernameMatch && passwordMatch) {
+
           // Log successful login attempt
+
           await push(ref(db, 'loginAttempts'), {
+
             username: normalizeString(username),
+
             timestamp: Date.now(),
+
             status: 'success',
+
             userAgent: navigator.userAgent,
+
             platform: navigator.platform
+
           });
-          
+
+
+
           // Use the auth context login method
+
           login();
-          
+
+
+
           // Navigate to the intended page or dashboard
+
           const from = location.state?.from?.pathname || '/dashboard';
+
           navigate(from, { replace: true });
+
         } else {
+
           // Log failed login attempt with more details
+
           await push(ref(db, 'loginAttempts'), {
+
             username: normalizeString(username),
+
             timestamp: Date.now(),
+
             status: 'fail',
+
             userAgent: navigator.userAgent,
+
             platform: navigator.platform,
+
             reason: !usernameMatch ? 'invalid_username' : 'invalid_password'
+
           });
+
           setError('Incorrect username or password');
+
         }
+
       } else {
+
         setError('Authentication service unavailable. Please try again.');
+
       }
+
     } catch (error) {
+
       console.error('Login error:', error);
+
       setError('Connection error. Please check your internet and try again.');
-      
+
+
+
       // Log error for debugging
+
       try {
+
         await push(ref(db, 'loginErrors'), {
+
           error: error.message,
+
           timestamp: Date.now(),
+
           userAgent: navigator.userAgent,
+
           platform: navigator.platform
+
         });
+
       } catch (logError) {
+
         console.error('Failed to log error:', logError);
+
       }
+
     } finally {
+
       setIsLoading(false);
+
     }
+
   };
 
+
+
   return (
-    <div className="min-h-screen flex items-center justify-center relative" style={{backgroundImage: "url('https://images.unsplash.com/photo-1624099600644-14f20e1dc01c?q=80&w=1156&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D')", backgroundSize: 'cover', backgroundPosition: 'center'}}>
+
+    <div className="min-h-screen flex items-center justify-center relative" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1624099600644-14f20e1dc01c?q=80&w=1156&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D')", backgroundSize: 'cover', backgroundPosition: 'center' }}>
+
       {/* Overlay for darkening the background */}
+
       <div className="absolute inset-0 bg-opacity-70 z-0"></div>
-      <div className="hacker-card p-8 w-full max-w-sm shadow-2xl border-2 border-blue-500 z-10" style={{backdropFilter:'blur(3px)'}}>
+
+      <div className="hacker-card p-8 w-full max-w-sm shadow-2xl border-2 border-blue-500 z-10" style={{ backdropFilter: 'blur(3px)' }}>
+
         <h1 className="glitch mb-6 text-center" data-text="Admin Login" style={{ fontFamily: 'Fira Mono, Courier, monospace', fontSize: '2.1rem', color: 'var(--hacker-accent)' }}>Admin Login</h1>
-        
+
+
+
         <input
+
           type="text"
+
           placeholder="Username"
+
           value={username}
+
           onChange={(e) => setUsername(e.target.value)}
+
           className="w-full mb-4 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+
         />
-        
+
+
+
         <input
+
           type="password"
+
           placeholder="Password"
+
           value={password}
+
           onChange={(e) => setPassword(e.target.value)}
+
           className="w-full mb-4 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+
         />
+
+
 
         <button
+
           onClick={handleLogin}
+
           disabled={isLoading}
-          className={`w-full font-semibold py-2 px-4 rounded-md transition duration-300 flex items-center justify-center ${
-            isLoading 
-              ? 'bg-blue-400 cursor-not-allowed' 
+
+          className={`w-full font-semibold py-2 px-4 rounded-md transition duration-300 flex items-center justify-center ${isLoading
+
+              ? 'bg-blue-400 cursor-not-allowed'
+
               : 'bg-blue-600 hover:bg-blue-700'
-          } text-white`}
+
+            } text-white`}
+
         >
+
           {isLoading ? (
+
             <>
-              <svg 
-                className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" 
-                xmlns="http://www.w3.org/2000/svg" 
-                fill="none" 
+
+              <svg
+
+                className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+
+                xmlns="http://www.w3.org/2000/svg"
+
+                fill="none"
+
                 viewBox="0 0 24 24"
+
               >
-                <circle 
-                  className="opacity-25" 
-                  cx="12" 
-                  cy="12" 
-                  r="10" 
-                  stroke="currentColor" 
+
+                <circle
+
+                  className="opacity-25"
+
+                  cx="12"
+
+                  cy="12"
+
+                  r="10"
+
+                  stroke="currentColor"
+
                   strokeWidth="4"
+
                 ></circle>
-                <path 
-                  className="opacity-75" 
-                  fill="currentColor" 
+
+                <path
+
+                  className="opacity-75"
+
+                  fill="currentColor"
+
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+
                 ></path>
+
               </svg>
+
               Logging in...
+
             </>
+
           ) : (
+
             'Login'
+
           )}
+
         </button>
 
+
+
         {error && <p className="text-red-500 text-center mb-2 font-semibold">{error}</p>}
+
       </div>
+
     </div>
+
   );
+
 };
+
+
 
 export default Login;
